@@ -1,0 +1,22 @@
+﻿Changed database context to 'FonaVitSV_Fase2'.
+codigo_auditoria codigo_registro operacion fecha_utc beneficiario_antes beneficiario_despues
+---------------- --------------- --------- --------- ------------------ --------------------
+27 24 INSERT 2026-10-11 06:17:34 NULL Beneficiario prueba
+28 23 INSERT 2026-10-11 06:17:34 NULL Beneficiario prueba
+29 24 UPDATE 2026-10-11 06:17:34 Beneficiario prueba Beneficiario actualizado
+30 23 UPDATE 2026-10-11 06:17:34 Beneficiario prueba Beneficiario actualizado
+31 24 DELETE 2026-10-11 06:17:34 Beneficiario actualizado NULL
+32 23 DELETE 2026-10-11 06:17:34 Beneficiario actualizado NULL
+PASS: INSERT, UPDATE y DELETE de dos filas producen seis eventos.
+PASS: la prueba se revirtió sin dejar clientes ficticios adicionales.
+tabla filas
+----- -----
+EMPLEADO 20
+CLIENTE 20
+CUENTA 25
+TRANSACCION 50
+PRESTAMO 20
+AUDITORIA 20
+PASS: todas las tablas contienen al menos 20 filas.
+PASS: vistas con 25 cuentas y 20 préstamos.
+DBCC execution completed. If DBCC printed error messages, contact your system administrator.

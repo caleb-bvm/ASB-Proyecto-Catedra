@@ -1,0 +1,8 @@
+Changed database context to 'FonaVitSV_Fase2'.
+Consulta Filas
+-------- -----
+WHERE 25
+JOIN 50
+GROUP BY 20
+HAVING 5
+SUBCONSULTA 10

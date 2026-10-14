@@ -1,0 +1,15 @@
+Changed database context to 'master'.
+Changed database context to 'FonaVitSV_Fase2'.
+Changed database context to 'FonaVitSV_Fase2'.
+Changed database context to 'FonaVitSV_Fase2'.
+
+(20 rows affected)
+
+(20 rows affected)
+
+(25 rows affected)
+
+(50 rows affected)
+
+(20 rows affected)
+Instalación completada. Base: FonaVitSV_Fase2

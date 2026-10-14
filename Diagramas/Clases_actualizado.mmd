@@ -1,0 +1,8 @@
+classDiagram
+CLIENTE "1" -- "0..*" CUENTA : posee
+CUENTA "1" -- "0..*" TRANSACCION : registra
+CUENTA "1" -- "0..*" PRESTAMO : respalda
+EMPLEADO "1" -- "0..*" TRANSACCION : atiende
+EMPLEADO "1" -- "0..*" PRESTAMO : gestiona
+EMPLEADO "0..1" -- "0..*" EMPLEADO : supervisa
+CLIENTE ..> AUDITORIA : trigger

@@ -1,0 +1,6 @@
+﻿Changed database context to 'FonaVitSV_Fase2'.
+PASS: una cuenta requiere un cliente existente.
+PASS: un préstamo requiere una cuenta existente.
+PASS: DUI de cliente único.
+PASS: el monto de transacción no puede ser cero.
+PASS: se preserva el cliente con cuentas relacionadas.

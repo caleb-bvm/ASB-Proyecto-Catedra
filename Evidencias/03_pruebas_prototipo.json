@@ -1,0 +1,91 @@
+{
+  "fecha": "2026-10-11T06:19:12.220Z",
+  "navegador": "Chromium",
+  "resultados": [
+    {
+      "prueba": "Rechazo de credenciales incorrectas",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Inicio de sesión de demostración",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Registro de cliente con primera cuenta automática",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Búsqueda de cliente por DUI",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Varias cuentas por cliente",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Rechazo de DUI duplicado",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Edición de cliente",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Depósito en cuenta nueva",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Bloqueo de retiro sin saldo",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Retiro con monto negativo en historial",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Rechazo de movimiento anterior a apertura",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Exportación CSV de movimientos",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Préstamo con cuenta previa y cálculo de cuota",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Cambio de estado y filtro de préstamos",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Registro de empleado con jefe",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Bloqueo de ciclo en jefatura",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Historial local de cambios",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Persistencia de datos después de recargar",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Diseño móvil y formulario sin desbordamiento",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Restablecimiento confirmado de datos",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Sin errores JavaScript durante el recorrido",
+      "resultado": "PASS"
+    }
+  ],
+  "errores": []
+}
