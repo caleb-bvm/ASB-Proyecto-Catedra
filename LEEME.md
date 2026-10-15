@@ -2,11 +2,15 @@
 
 ## Abrir el sitio
 
-Abre **Prototipo/index.html** con Chrome o Edge. No requiere instalación, internet ni base de datos. Pulsa **Explorar demostración**, o usa DUI `20000001-1` y contraseña `Demo2026!`.
+Haz doble clic en **Iniciar.cmd** en esta carpeta. Se abrirá **http://127.0.0.1:8765/**. Deja la ventana del servidor abierta durante el uso. También puedes ejecutar `./Iniciar.ps1` en PowerShell. Si ya está funcionando en ese puerto, el iniciador vuelve a abrirlo.
 
-El sitio es un prototipo académico con datos ficticios y almacenamiento local. **No está conectado a SQL Server.** La Parte 05 permite esta modalidad. Cambiar datos en el sitio no cambia la base SQL, y viceversa. El acceso es simulado, no autenticación de producción. La pantalla Ayuda permite restablecer la demostración.
+El prototipo **está conectado a SQL Server**: consulta y guarda en **FonaVitSV_Fase2**, instancia `.\SQLEXPRESS`, usando la cuenta Windows que ejecuta el servidor. Los formularios guardan clientes, empleados, cuentas, movimientos y préstamos. Auditoría muestra los eventos reales del trigger de CLIENTE. No se guardan registros en el almacenamiento del navegador.
 
-Para presentar: entra a Clientes, registra uno, abre otra cuenta desde su perfil, deposita $250, retira $50 e intenta retirar $300. Después registra un préstamo de $1,200 al 12% anual por 12 meses: la cuota referencial es $112. Consulta Auditoría para ver los cambios locales.
+Para entrar, pulsa **Entrar al prototipo**, o usa DUI `20000001-1` y contraseña `Demo2026!`. El acceso sigue siendo una sesión de demostración; la base original no incluye usuarios ni contraseñas. Los datos de la semilla son ficticios.
+
+Necesita **.NET SDK 10** y SQL Server. Ambos ya están instalados en este equipo. En otro equipo, la primera preparación requiere internet para descargar las dependencias. No abras `Prototipo/index.html` directamente: el sitio necesita el servidor. En Ayuda, **Actualizar datos de la base** vuelve a consultar los registros; también se actualizan al recargar la página. No hay botón que borre o restablezca la base.
+
+Para presentar: entra a Clientes, registra uno, abre otra cuenta desde su perfil, deposita $250, retira $50 e intenta retirar $300. Después registra un préstamo de $1,200 al 12% anual por 12 meses: la cuota referencial es $112. Consulta Auditoría para ver el alta y la modificación del cliente. Estos pasos sí modifican la base de datos.
 
 ## SQL Server
 
@@ -27,10 +31,12 @@ Se usó SQL Server 2025 Express 17.0.1000.7. La sintaxis está diseñada para SQ
 
 ## Contenido
 
-- **Proyecto_ASB.docx**: documento editable, partes 01 a 05, manual técnico y evidencias.
+- **Proyecto_ASB.docx**: documento de la entrega anterior, partes 01 a 05, manual técnico y evidencias. Su descripción del prototipo independiente es histórica; la conexión actual se explica en este LEEME y en `Servidor/LEEME.md`.
 - **Proyecto_ASB.pdf**: copia para el formato solicitado por el enunciado.
 - **SQL/**: creación, tablas, vistas, trigger, datos, consultas y pruebas.
-- **Prototipo/**: sitio HTML, CSS y JavaScript sin dependencias.
+- **Prototipo/**: interfaz HTML, CSS y JavaScript que consume la API local.
+- **Servidor/**: API en ASP.NET Core con consultas parametrizadas a SQL Server.
+- **Iniciar.cmd / Iniciar.ps1**: iniciadores del prototipo conectado.
 - **Diagramas/**: modelo relacional y clases actualizados, PNG y SVG editable; relaciones también en Mermaid.
 - **Evidencias/**: capturas reales del sitio y de reportes basados en resultados reales de SQL Server; archivos TXT y JSON para comprobar los resultados.
 - **Pruebas/**: recorrido automatizado opcional del prototipo.
@@ -44,14 +50,16 @@ Se mantiene la estructura de los mockups de Fase I y se adopta una paleta cálid
 
 La cuota usa interés simple anual, sin seguros ni comisiones. Registrar un préstamo no abona automáticamente su monto a la cuenta. No se implementan pagos parciales, amortización, intereses compuestos ni mora automática. “Cartera vigente” muestra capital original de préstamos no marcados como pagados, no saldo pendiente de cobro.
 
-La base aplica PK, FK, UNIQUE y CHECK. La validación de saldo suficiente, fechas y ciclos de jefatura del prototipo ocurre en JavaScript, no en un servidor. El trigger audita CLIENTE; no se afirma auditoría completa de todas las tablas. Es una entrega académica, no un sistema bancario listo para uso real.
+La base aplica PK, FK, UNIQUE y CHECK. El servidor valida saldo suficiente, fechas, precisión monetaria, relaciones y ciclos de jefatura. Crear un cliente y su primera cuenta ocurre en una única transacción; un fallo revierte también el evento del trigger. Los retiros mantienen bloqueos hasta confirmar el cambio, para evitar que dos solicitudes gasten el mismo saldo. El trigger audita CLIENTE; no se afirma auditoría completa de todas las tablas. Es una entrega académica con acceso de demostración.
 
 ## Revisión antes de entregar
 
 Comprueben nombres y carnets de la portada, revisen las conclusiones y practiquen la explicación de las consultas y el trigger. El enunciado advierte sobre el uso excesivo de IA: este material recibió asistencia de IA y debe revisarse y adaptarse por el equipo, conforme a las reglas de la docente. No se ha enviado nada al aula virtual.
 
-El archivo solicitado para entregar es **ProyCatedra_ASB.zip**. La fecha indicada en la guía es **20 de octubre**. Verifiquen el horario exacto en el aula virtual.
+La copia actualizada del código conectado se empaqueta como **ProyCatedra_ASB_Conectado.zip**. El ZIP anterior se conserva como antecedente. El documento Word y las evidencias anteriores aún describen la versión independiente; revisen esa parte antes de una entrega académica. La fecha indicada en la guía es **20 de octubre**. Verifiquen el horario exacto en el aula virtual.
 
 ## Repetir las pruebas del sitio de forma opcional
 
-El sitio no necesita Node ni Playwright para usarse. Solo para ejecutar `Pruebas/prototipo.cjs` se necesita Node y Playwright, y un servidor estático que publique la carpeta ProyCatedra_ASB en el puerto 8765. Se puede configurar `PROTOTIPO_URL` para otra dirección y `CHROME_PATH` para un navegador instalado. El recorrido usa un contexto aislado y no modifica los datos del navegador personal.
+El sitio no necesita Node ni Playwright para usarse. Para ejecutar `Pruebas/prototipo.cjs`, prepara primero el servidor con `dotnet build Servidor/FonaVitSV.csproj` y después ejecuta `node Pruebas/prototipo.cjs` con Node y Playwright disponibles. `CHROME_PATH` permite elegir un navegador instalado.
+
+El recorrido crea una base temporal con nombre `FonaVitSV_Test_...`, carga allí los scripts 01 a 03, inicia su propio servidor en el puerto 8766 y prueba los formularios, persistencia, auditoría, rollback y retiros simultáneos. Al finalizar elimina únicamente esa base temporal. **No escribe en FonaVitSV_Fase2.** Se puede configurar `FONAVIT_TEST_SERVER` y `FONAVIT_TEST_PORT`. La cuenta Windows necesita permisos para crear y eliminar la base de pruebas. El resultado se guarda en `Evidencias/19_pruebas_conexion_sql.json`.

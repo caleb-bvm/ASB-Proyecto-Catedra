@@ -1,0 +1,112 @@
+{
+  "fecha": "2026-10-14T17:07:47.332Z",
+  "base_prueba": "FonaVitSV_Test_e2f4aa6208114263832d68d7d17d173d",
+  "base_original": "FonaVitSV_Fase2",
+  "resultados": [
+    {
+      "prueba": "Lectura de las seis tablas desde SQL Server",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Acceso de demostración y pantalla de inicio",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Cliente, primera cuenta y auditoría guardados desde el formulario",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Segunda cuenta abierta desde el perfil",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Edición, parámetros SQL, escape HTML y persistencia tras recarga",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "DUI duplicado rechazado en servidor sin cuenta adicional",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Rollback de cliente y auditoría si falla su primera cuenta",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Depósito desde formulario confirmado en SQL",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Retiro sin saldo rechazado en formulario",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Retiro válido guardado con monto negativo",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Dos retiros simultáneos no gastan el mismo saldo",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Servidor valida montos, precisión, tipo, empleado, fechas y DUI",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Cuentas simultáneas reciben números únicos",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Préstamo, cuota SQL y estado; sin abono automático",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Empleado con jefe y rechazo de ciclos en servidor",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Auditoría muestra eventos reales del trigger",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Exportación CSV de movimientos SQL",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Datos visibles en otro navegador sin almacenamiento local",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Vista y formulario adaptados a móvil",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Actualizar registros sin borrar la base",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Escrituras de orígenes externos rechazadas",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Fallo de conexión visible sin persistencia local",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Fallo de lectura SQL y recuperación de conexión",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Sin errores JavaScript",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Base original preservada",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "Base temporal de pruebas eliminada",
+      "resultado": "PASS"
+    }
+  ],
+  "errores": []
+}

@@ -1,6 +1,5 @@
-/* Prototipo académico independiente de SQL Server. Sin dependencias externas. */
+/* Prototipo académico conectado a SQL Server mediante la API local. */
 'use strict';
-const KEY='fonavit-fase2-v1';
 const $=s=>document.querySelector(s);
 const escapeHtml=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=v=>new Intl.NumberFormat('es-SV',{style:'currency',currency:'USD'}).format(v);
@@ -10,26 +9,39 @@ const code=(prefix,id)=>prefix+'-'+String(id).padStart(4,'0');
 const paths={home:'M3 10 12 3l9 7v10H3Z M9 20v-7h6v7',clients:'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M17 4a4 4 0 0 1 0 8 M22 21v-2a4 4 0 0 0-3-4',transactions:'M4 7h16m-4-4 4 4-4 4 M20 17H4m4-4-4 4 4 4',loans:'M3 10h18 M5 10v9m5-9v9m4-9v9m5-9v9 M2 21h20 M2 7l10-5 10 5Z',employees:'M8 6V3h8v3 M3 7h18v14H3Z M3 12h18 M10 12v3h4v-3',audit:'M5 3h14v18H5Z M8 7h8 M8 11h8 M8 15h5',settings:'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8 M12 2v3m0 14v3 M2 12h3m14 0h3 M5 5l2 2m10 10 2 2 M5 19l2-2M17 7l2-2',plus:'M12 5v14M5 12h14',arrow:'M5 12h14m-6-6 6 6-6 6',wallet:'M3 5h16v15H3Z M3 5V3h13v2 M15 11h6v5h-6Z',logout:'M9 4H3v16h6 M8 12h13m-5-5 5 5-5 5'};
 const icon=n=>`<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="${paths[n]||paths.home}"/></svg>`;
 const art=`<svg viewBox="0 0 220 190" aria-hidden="true"><path fill="#eeb65f" d="M110 4 132 27 164 18 172 50 204 61 192 91 210 119 180 136 177 170 143 169 121 194 97 171 63 180 52 147 20 138 31 106 11 78 41 60 43 26 77 28Z"/><path fill="#873e29" d="m62 101 48-40 48 40v60H62Z"/><path fill="#ffdbcc" d="M96 125h28v36H96Z M74 105h17v17H74Z M130 105h17v17h-17Z"/><path fill="none" stroke="#fff8f3" stroke-width="6" stroke-linecap="round" d="M54 99 110 52l56 47"/></svg>`;
-let data,storageWarning='';
-try{data=JSON.parse(localStorage.getItem(KEY))||structuredClone(window.SEMILLA);if(data.version!==1||!Array.isArray(data.clients))throw Error();}catch{data=structuredClone(window.SEMILLA);storageWarning='No se pudieron leer los datos guardados. Se cargó la demostración.';}
+let data=null,loading=true,connectionError='',busy=false;
 let logged=false;try{logged=sessionStorage.getItem('fonavit-demo')==='yes';}catch{}
 let route='home',filter='',loanFilter='Todos';
-const next=items=>Math.max(0,...items.map(x=>x.id))+1;
 const client=id=>data.clients.find(x=>x.id===id);
 const account=id=>data.accounts.find(x=>x.id===id);
 const balance=id=>Math.round(data.transactions.filter(x=>x.account===id).reduce((n,x)=>n+x.amount,0)*100)/100;
 const loanClient=x=>client(account(x.account)?.client);
-function save(){try{localStorage.setItem(KEY,JSON.stringify(data));}catch{throw Error('El navegador no pudo guardar los cambios. Libera espacio o permite almacenamiento local.');}}
-function commit(fn){const backup=structuredClone(data);try{fn();save();}catch(e){data=backup;throw e;}}
-function audit(table,id,op,before,after){data.audit.push({id:next(data.audit),table,record:id,operation:op,date:new Date().toISOString(),before:before?JSON.stringify(before):null,after:after?JSON.stringify(after):null});}
+async function request(url,options={}){
+ if(location.protocol==='file:')throw Error('Abre Iniciar.cmd en la carpeta del proyecto para usar el prototipo conectado.');
+ let response;
+ try{response=await fetch(url,{cache:'no-store',...options});}catch{throw Error('No se pudo contactar al servidor. Comprueba que Iniciar.cmd siga abierto.');}
+ let result;try{result=await response.json();}catch{throw Error('La respuesta del servidor no es válida. Abre el sitio desde Iniciar.cmd.');}
+ if(!response.ok)throw Error(result.error||'No se pudo completar la operación.');
+ return result;
+}
+async function loadData(){
+ if(busy)return;
+ loading=true;connectionError='';render();
+ try{data=await request('/api/data');}catch(e){data=null;connectionError=e.message;}
+ loading=false;render();
+}
+async function persist(kind,id,values){
+ data=await request('/api/records',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind,id,values})});
+}
+function setBusy(value){busy=value;document.querySelectorAll('#record-form button,#dialog [data-action],.workspace button').forEach(b=>b.disabled=value);}
 function toast(t){$('#toast').textContent=t;$('#toast').classList.add('show');clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>$('#toast').classList.remove('show'),4500);}
 const brand=`<span class="logo">FV</span><span><b>FonaVitSV</b><small>COOPERATIVA</small></span>`;
 const nav=[['home','Inicio'],['clients','Clientes'],['transactions','Transacciones'],['loans','Préstamos'],['employees','Empleados'],['audit','Auditoría'],['settings','Ayuda']];
 function render(){
- if(!logged){$('#app').innerHTML=`<main class="login" id="main"><section class="login-story"><a class="brand" href="#">${brand}</a><div><div class="eyebrow" style="margin-top:40px">CERCA DE QUIENES EMPRENDEN</div><h1>Pequeños sueños.<br>Grandes comienzos.</h1><p>20 años acompañando a las personas que hacen crecer nuestra comunidad.</p></div><div class="login-art">${art}</div><small>Cooperativa de ahorro y crédito · El Salvador</small></section><section class="login-form"><div class="eyebrow">TU ESPACIO DE TRABAJO</div><h2>Bienvenido de nuevo</h2><p class="muted">Ingresa para gestionar la cooperativa.</p><form id="login-form"><label>Documento de identidad<input name="dui" autocomplete="username" placeholder="20000001-1" required pattern="[0-9]{8}-[0-9]"></label><label>Contraseña<input name="password" type="password" autocomplete="current-password" placeholder="Tu contraseña" required></label><p id="login-error" class="error" role="alert"></p><button class="btn" type="submit">Iniciar sesión ${icon('arrow')}</button></form><button class="btn ghost" data-action="demo">Explorar demostración</button><div class="notice"><b>Acceso de demostración</b><br>DUI: 20000001-1 · Contraseña: Demo2026!<br>Datos ficticios. Este acceso simula una sesión.</div></section></main>`;return;}
+ if(loading||connectionError){$('#app').innerHTML=`<main id="main" class="panel" style="max-width:680px;margin:10vh auto"><h1>${loading?'Conectando con la cooperativa…':'No se pudo abrir la cooperativa'}</h1><p>${loading?'Cargando los registros guardados.':escapeHtml(connectionError)}</p>${loading?'':'<button class="btn" data-action="refresh">Reintentar conexión</button>'}</main>`;return;}
+ if(!logged){$('#app').innerHTML=`<main class="login" id="main"><section class="login-story"><a class="brand" href="#">${brand}</a><div><div class="eyebrow" style="margin-top:40px">CERCA DE QUIENES EMPRENDEN</div><h1>Pequeños sueños.<br>Grandes comienzos.</h1><p>20 años acompañando a las personas que hacen crecer nuestra comunidad.</p></div><div class="login-art">${art}</div><small>Cooperativa de ahorro y crédito · El Salvador</small></section><section class="login-form"><div class="eyebrow">TU ESPACIO DE TRABAJO</div><h2>Bienvenido de nuevo</h2><p class="muted">Ingresa para gestionar la cooperativa.</p><form id="login-form"><label>Documento de identidad<input name="dui" autocomplete="username" placeholder="20000001-1" required pattern="[0-9]{8}-[0-9]"></label><label>Contraseña<input name="password" type="password" autocomplete="current-password" placeholder="Tu contraseña" required></label><p id="login-error" class="error" role="alert"></p><button class="btn" type="submit">Iniciar sesión ${icon('arrow')}</button></form><button class="btn ghost" data-action="demo">Entrar al prototipo</button><div class="notice"><b>Acceso de demostración</b><br>DUI: 20000001-1 · Contraseña: Demo2026!<br>Este acceso simula una sesión. Los cambios se guardan en la base de datos.</div></section></main>`;return;}
  route=location.hash.slice(1)||'home';if(!nav.some(x=>x[0]===route))route='home';
- $('#app').innerHTML=`<aside class="sidebar"><a class="brand" href="#home">${brand}</a><nav aria-label="Navegación principal">${nav.map(([n,t])=>`<a class="nav-link ${route===n?'active':''}" href="#${n}" ${route===n?'aria-current="page"':''}>${icon(n)}<span>${t}</span></a>`).join('')}</nav><div class="sidebar-bottom"><p><b>Crecer juntos, cada día.</b><br>20 años junto a emprendedores.</p><span class="pill neutral">Prototipo académico</span></div></aside><div class="workspace"><header class="topbar"><small class="desktop-date">COOPERATIVA FONAVITSV / GESTIÓN INTERNA</small><a href="#home" class="brand mobile-brand">${brand}</a><div class="user"><span class="avatar">AG</span><div><b style="font-size:13px">Asesor de gestión</b><small style="display:block">Sesión de demostración</small></div><button class="btn ghost small" data-action="logout" aria-label="Cerrar sesión">${icon('logout')}</button></div></header><main id="main">${page()}</main><p class="footer-note">FonaVitSV · Datos ficticios guardados en este navegador · Fase II / ASB404</p></div>`;
- if(storageWarning){toast(storageWarning);storageWarning='';}
+ $('#app').innerHTML=`<aside class="sidebar"><a class="brand" href="#home">${brand}</a><nav aria-label="Navegación principal">${nav.map(([n,t])=>`<a class="nav-link ${route===n?'active':''}" href="#${n}" ${route===n?'aria-current="page"':''}>${icon(n)}<span>${t}</span></a>`).join('')}</nav><div class="sidebar-bottom"><p><b>Crecer juntos, cada día.</b><br>20 años junto a emprendedores.</p><span class="pill neutral">Conectado a SQL Server</span></div></aside><div class="workspace"><header class="topbar"><small class="desktop-date">COOPERATIVA FONAVITSV / GESTIÓN INTERNA</small><a href="#home" class="brand mobile-brand">${brand}</a><div class="user"><span class="avatar">AG</span><div><b style="font-size:13px">Asesor de gestión</b><small style="display:block">Sesión de demostración</small></div><button class="btn ghost small" data-action="logout" aria-label="Cerrar sesión">${icon('logout')}</button></div></header><main id="main">${page()}</main><p class="footer-note">FonaVitSV · Datos guardados en SQL Server · Fase II / ASB404</p></div>`;
 }
 function heading(title,sub,action,label){return `<div class="page-head"><div><div class="eyebrow">GESTIÓN DE LA COOPERATIVA</div><h1>${title}</h1><p>${sub}</p></div>${action?`<button class="btn" data-action="${action}">${icon('plus')}${label}</button>`:''}</div>`;}
 function metric(label,value,sub,i){return `<div class="metric"><div class="label">${icon(i)}${label}</div><strong>${value}</strong><small>${sub}</small></div>`;}
@@ -39,10 +51,10 @@ function page(){
  if(route==='home')return `${heading('Cada día, más cerca.','Un vistazo a tu cooperativa y a las personas que la hacen crecer.')}<section class="hero"><div><div class="eyebrow">PERSONAS ANTES QUE NÚMEROS</div><h2>Un nuevo comienzo<br>empieza con una cuenta.</h2><p>Acompaña a más emprendedores. Registra un cliente y abre su primera cuenta en un solo paso.</p><button class="btn" data-action="new-client">Registrar cliente ${icon('arrow')}</button></div><div class="hero-art">${art}</div></section><section class="metrics" aria-label="Resumen">${metric('Clientes',data.clients.length,'Personas registradas','clients')}${metric('Ahorro total',money(data.accounts.reduce((s,x)=>s+balance(x.id),0)),'Suma de saldos de cuentas','wallet')}${metric('Cartera vigente',money(data.loans.filter(x=>x.status!=='Pagado').reduce((s,x)=>s+x.amount,0)),'Capital original de préstamos vigentes','loans')}${metric('Cuentas abiertas',data.accounts.filter(x=>x.status==='Activa').length,'Un cliente puede tener varias','home')}</section><div class="section-head"><h2>¿Qué hacemos hoy?</h2><small>Acciones frecuentes</small></div><section class="actions-grid">${[['clients','Clientes','Registro y cuentas','new-client'],['transactions','Transacciones','Depósitos y retiros','new-transaction'],['loans','Préstamos','Solicitud y control','new-loan'],['employees','Empleados','Nuestro equipo','new-employee']].map(([i,t,s,a])=>`<button class="action-card" data-action="${a}"><span class="symbol">${icon(i)}</span><b>${t}</b><small>${s} ↗</small></button>`).join('')}</section><section class="panel"><div class="section-head" style="margin-top:0"><h2>Últimos movimientos</h2><a href="#transactions">Ver todos →</a></div>${table(['Movimiento','Cliente / cuenta','Tipo','Monto'],transactionRows([...data.transactions].reverse().slice(0,5)))}</section>`;
  if(route==='clients')return `${heading('Clientes','Personas, historias y nuevas oportunidades.','new-client','Nuevo cliente')}<section class="panel"><div class="toolbar"><input class="search" id="search" aria-label="Buscar clientes" placeholder="Buscar por nombre o DUI" value="${escapeHtml(filter)}"><span class="count">${data.clients.length} clientes registrados</span></div><div id="results">${clientsTable()}</div></section>`;
  if(route==='employees')return `${heading('Nuestro equipo','Gestiona los datos y responsables de la cooperativa.','new-employee','Nuevo empleado')}<section class="panel"><div class="toolbar"><input class="search" id="search" aria-label="Buscar empleados" placeholder="Buscar por nombre, DUI o puesto" value="${escapeHtml(filter)}"><span class="count">${data.employees.length} empleados</span></div><div id="results">${employeesTable()}</div></section>`;
- if(route==='transactions')return `${heading('Transacciones','Cada movimiento, claro y a tu alcance.','new-transaction','Nuevo movimiento')}<section class="metrics">${metric('Depósitos',money(data.transactions.filter(x=>x.amount>0).reduce((s,x)=>s+x.amount,0)),'Total registrado','wallet')}${metric('Retiros',money(-data.transactions.filter(x=>x.amount<0).reduce((s,x)=>s+x.amount,0)),'Total registrado','transactions')}${metric('Movimientos',data.transactions.length,'Historial de la demostración','audit')}${metric('Saldo conjunto',money(data.accounts.reduce((s,x)=>s+balance(x.id),0)),'Depósitos menos retiros','home')}</section><section class="panel"><div class="toolbar"><input class="search" id="search" aria-label="Buscar movimientos" placeholder="Buscar cuenta, cliente o código" value="${escapeHtml(filter)}"><button class="btn ghost small" data-action="export">Exportar CSV</button></div><div id="results">${transactionsTable()}</div></section>`;
+ if(route==='transactions')return `${heading('Transacciones','Cada movimiento, claro y a tu alcance.','new-transaction','Nuevo movimiento')}<section class="metrics">${metric('Depósitos',money(data.transactions.filter(x=>x.amount>0).reduce((s,x)=>s+x.amount,0)),'Total registrado','wallet')}${metric('Retiros',money(-data.transactions.filter(x=>x.amount<0).reduce((s,x)=>s+x.amount,0)),'Total registrado','transactions')}${metric('Movimientos',data.transactions.length,'Historial de la cooperativa','audit')}${metric('Saldo conjunto',money(data.accounts.reduce((s,x)=>s+balance(x.id),0)),'Depósitos menos retiros','home')}</section><section class="panel"><div class="toolbar"><input class="search" id="search" aria-label="Buscar movimientos" placeholder="Buscar cuenta, cliente o código" value="${escapeHtml(filter)}"><button class="btn ghost small" data-action="export">Exportar CSV</button></div><div id="results">${transactionsTable()}</div></section>`;
  if(route==='loans')return `${heading('Préstamos','Impulsamos el próximo paso de cada emprendimiento.','new-loan','Nuevo préstamo')}<div class="notice">La cuota usa interés simple anual. Es una referencia académica sin seguros ni comisiones. El estado se actualiza manualmente.</div><div class="toolbar" style="margin-top:24px">${['Todos','Al día','Atrasado','Pagado'].map(x=>`<button class="chip ${loanFilter===x?'active':''}" data-action="filter-loan" data-id="${x}" aria-pressed="${loanFilter===x}">${x}</button>`).join('')}</div><div class="loan-grid">${data.loans.filter(x=>loanFilter==='Todos'||x.status===loanFilter).map(x=>`<article class="loan"><div class="row"><small>${code('PRE',x.id)}</small><span class="pill ${x.status==='Atrasado'?'warn':''}">${x.status}</span></div><h3>${escapeHtml(loanClient(x)?.name)}</h3><small>DUI ${escapeHtml(loanClient(x)?.dui)}</small><div class="amount" style="margin-top:20px">${money(x.amount)}</div><dl><div><dt>Cuota referencial</dt><dd>${money(x.amount*(1+x.rate/100*x.months/12)/x.months)}</dd></div><div><dt>Plazo</dt><dd>${x.months} meses</dd></div><div><dt>Interés anual</dt><dd>${x.rate}%</dd></div><div><dt>Desembolso</dt><dd>${escapeHtml(x.date)}</dd></div></dl><button class="btn ghost small" data-action="loan-status" data-id="${x.id}">Actualizar estado</button></article>`).join('')||'<p class="empty">No hay préstamos en este estado.</p>'}</div>`;
- if(route==='audit')return `${heading('Auditoría','Un historial de los cambios realizados en esta demostración.')}<div class="notice">Este historial pertenece al navegador. La auditoría real de SQL Server se consulta en la tabla AUDITORIA y se genera mediante el trigger de CLIENTE.</div><section class="panel">${table(['Fecha UTC','Entidad','Registro','Operación','Detalle'],[...data.audit].reverse().map(x=>`<tr><td>${escapeHtml(x.date.replace('T',' ').slice(0,19))}</td><td>${escapeHtml(x.table)}</td><td>${escapeHtml(x.record)}</td><td><span class="pill neutral">${x.operation}</span></td><td><button class="btn ghost small" data-action="audit-detail" data-id="${x.id}">Ver cambio</button></td></tr>`))}</section>`;
- return `${heading('Una ayuda para empezar','Todo lo necesario para recorrer el prototipo.')}<section class="panel settings"><h2>Tu recorrido en cinco pasos</h2><ol><li><p>Registra un cliente. Su primera cuenta se crea automáticamente.</p></li><li><p>Abre su perfil para consultar saldos o añadir otra cuenta.</p></li><li><p>Registra un depósito o retiro. Los retiros no pueden superar el saldo.</p></li><li><p>Solicita un préstamo para una cuenta existente y revisa la cuota estimada.</p></li><li><p>Consulta empleados, movimientos y el historial de auditoría.</p></li></ol><h2>Sobre esta demostración</h2><p>Los datos son ficticios y permanecen en este navegador. El sitio no está conectado a SQL Server y el acceso de prueba no ofrece seguridad real. No ingreses información personal real.</p><p>La base de datos, sus vistas y el trigger se prueban por separado con los scripts de la carpeta SQL.</p><button class="btn ghost" data-action="reset">Restablecer datos de demostración</button></section>`;
+ if(route==='audit')return `${heading('Auditoría','Cambios de clientes registrados en la base de datos.')}<div class="notice">Este historial se consulta en SQL Server. El trigger de CLIENTE registra altas, modificaciones y eliminaciones, con los datos anteriores y nuevos.</div><section class="panel">${table(['Fecha UTC','Entidad','Registro','Operación','Detalle'],[...data.audit].reverse().map(x=>`<tr><td>${escapeHtml(x.date.replace('T',' ').slice(0,19))}</td><td>${escapeHtml(x.table)}</td><td>${escapeHtml(x.record)}</td><td><span class="pill neutral">${x.operation}</span></td><td><button class="btn ghost small" data-action="audit-detail" data-id="${x.id}">Ver cambio</button></td></tr>`))}</section>`;
+ return `${heading('Una ayuda para empezar','Todo lo necesario para recorrer el prototipo.')}<section class="panel settings"><h2>Tu recorrido en cinco pasos</h2><ol><li><p>Registra un cliente. Su primera cuenta se crea automáticamente.</p></li><li><p>Abre su perfil para consultar saldos o añadir otra cuenta.</p></li><li><p>Registra un depósito o retiro. Los retiros no pueden superar el saldo.</p></li><li><p>Solicita un préstamo para una cuenta existente y revisa la cuota estimada.</p></li><li><p>Consulta empleados, movimientos y el historial de auditoría.</p></li></ol><h2>Sobre esta demostración</h2><p>Los registros se consultan y guardan en SQL Server. El acceso sigue siendo una sesión de demostración académica.</p><p>Los depósitos y retiros actualizan el saldo de la cuenta. Registrar un préstamo no deposita su monto en la cuenta. La auditoría corresponde a cambios de clientes.</p><button class="btn ghost" data-action="refresh">Actualizar datos de la base</button></section>`;
 }
 function match(x,keys){return keys.some(k=>String(x[k]).toLocaleLowerCase().includes(filter.toLocaleLowerCase()));}
 function clientsTable(){return table(['Cliente','Documento','Ciudad','Cuentas',''],data.clients.filter(x=>match(x,['name','dui'])).map(x=>`<tr><td><b>${escapeHtml(x.name)}</b><small>${code('CLI',x.id)} · ${age(x.birth)} años</small></td><td>${escapeHtml(x.dui)}</td><td>${escapeHtml(x.city)}</td><td>${data.accounts.filter(a=>a.client===x.id).length}</td><td class="right"><button class="btn ghost small" data-action="client-detail" data-id="${x.id}">Ver perfil</button></td></tr>`));}
@@ -55,7 +67,7 @@ function form(kind,body,id='',label='Guardar'){return `<form id="record-form" da
 function personForm(kind,id){const employee=kind==='employee',p=(employee?data.employees:data.clients).find(x=>x.id===Number(id))||{};
  let body=field('name','Nombre completo',p.name,'text','maxlength="120"',true)+field('dui','Documento de identidad',p.dui,'text','pattern="[0-9]{8}-[0-9]" placeholder="00000000-0" maxlength="10"')+field('birth','Fecha de nacimiento',p.birth,'date',`max="${today()}" min="1900-01-01"`)+field('age','Edad calculada',p.birth?age(p.birth):'','text','readonly tabindex="-1"')+field('street','Calle o colonia',p.street,'text','maxlength="120"')+field('house','Número de casa',p.house,'text','maxlength="20"')+field('city','Ciudad',p.city,'text','maxlength="80"')+field('department','Departamento',p.department,'text','maxlength="80"');
  if(employee)body+=field('role','Puesto',p.role,'text','maxlength="60"')+field('salary','Sueldo mensual en USD',p.salary,'number','min="0.01" max="9999999999.99" step="0.01"')+select('boss','Jefe inmediato',[['','Sin jefe'],...data.employees.filter(x=>x.id!==p.id).map(x=>[x.id,x.name])],p.boss||'');
- else body+=select('family','Estado familiar',['Soltero/a','Casado/a','Acompañado/a','Divorciado/a','Viudo/a'].map(x=>[x,x]),p.family)+field('beneficiary','Beneficiario',p.beneficiary,'text','maxlength="120"',true)+`<div class="notice full">${p.id?'Los cambios se registran en el historial de demostración.':'Se abrirá una cuenta automáticamente. Puedes agregar más desde el perfil.'}</div>`;
+ else body+=select('family','Estado familiar',['Soltero/a','Casado/a','Acompañado/a','Divorciado/a','Viudo/a'].map(x=>[x,x]),p.family)+field('beneficiary','Beneficiario',p.beneficiary,'text','maxlength="120"',true)+`<div class="notice full">${p.id?'Los cambios se guardan en la base de datos y se auditan mediante el trigger de CLIENTE.':'Se abrirá una cuenta automáticamente. Puedes agregar más desde el perfil.'}</div>`;
  openDialog(p.id?(employee?'Editar empleado':'Editar cliente'):(employee?'Registro de empleado':'Registro de cliente'),form(kind,body,p.id||'',p.id?'Guardar cambios':employee?'Registrar empleado':'Registrar cliente'));
  const boss=$('select[name="boss"]');if(boss)boss.required=false;
 }
@@ -68,51 +80,35 @@ function moneyForm(kind){const opts=data.accounts.filter(x=>x.status==='Activa')
  openDialog(kind==='loan'?'Solicitud de préstamo':'Registro de transacción',form(kind,body,'',kind==='loan'?'Registrar préstamo':'Confirmar movimiento'));accountInfo();
 }
 function accountInfo(){const a=account($('select[name="account"]')?.value);if(!a)return;$('#account-info').textContent=`Titular: ${client(a.client)?.name} · DUI: ${client(a.client)?.dui} · Saldo disponible: ${money(balance(a.id))}`;}
-function addAccount(cid){const number=Math.max(0,...data.accounts.map(x=>Number(x.id.split('-').pop())))+1;const a={id:`CTA-2026-${String(number).padStart(4,'0')}`,client:cid,date:today(),status:'Activa'};data.accounts.push(a);audit('CUENTA',a.id,'INSERT',null,a);return a;}
-function handleSubmit(f){const v=Object.fromEntries(new FormData(f));const kind=f.dataset.kind,id=Number(f.dataset.id);Object.keys(v).forEach(k=>v[k]=v[k].trim());
- if(kind==='client'||kind==='employee'){
-  const isEmp=kind==='employee',items=isEmp?data.employees:data.clients;
-  for(const k of ['name','dui','birth','street','house','city','department',isEmp?'role':'beneficiary'])if(!v[k])throw Error('Completa todos los campos con información válida.');
-  if(!/^\d{8}-\d$/.test(v.dui))throw Error('El DUI debe tener el formato 00000000-0.');
-  if(items.some(x=>x.dui===v.dui&&x.id!==id))throw Error('Este documento ya está registrado.');
-  if(v.birth>today()||v.birth<'1900-01-01')throw Error('Revisa la fecha de nacimiento.');
-  delete v.age;const old=items.find(x=>x.id===id);const item={...v,id:id||next(items)};
-  if(isEmp){item.salary=Number(v.salary);item.boss=v.boss?Number(v.boss):null;if(!(item.salary>0))throw Error('El sueldo debe ser mayor que cero.');let boss=item.boss,seen=new Set([item.id]);while(boss){if(seen.has(boss))throw Error('La jerarquía de jefes no puede formar un ciclo.');seen.add(boss);boss=data.employees.find(x=>x.id===boss)?.boss;}}
-  commit(()=>{if(old)items[items.indexOf(old)]=item;else items.push(item);audit(isEmp?'EMPLEADO':'CLIENTE',item.id,old?'UPDATE':'INSERT',old,item);if(!isEmp&&!old)addAccount(item.id);});
- }else if(kind==='transaction'||kind==='loan'){
-  const a=account(v.account),amount=Number(v.amount),employee=Number(v.employee);
-  if(!a||a.status!=='Activa')throw Error('Selecciona una cuenta activa.');
-  if(!data.employees.some(x=>x.id===employee))throw Error('Selecciona un empleado válido.');
-  if(!Number.isFinite(amount)||amount<=0||amount>9999999999.99)throw Error('Ingresa un monto positivo válido.');
-  if(v.date<a.date||v.date>today())throw Error('La fecha debe estar entre la apertura de la cuenta y hoy.');
-  if(kind==='transaction'){
-   if(!/^\d{8}-\d$/.test(v.dui))throw Error('Revisa el formato del DUI.');
-   if(v.type==='withdraw'&&amount>balance(a.id))throw Error('Saldo insuficiente. El retiro no fue registrado.');
-   const t={id:next(data.transactions),account:a.id,dui:v.dui,employee,amount:Math.round(amount*100)/100*(v.type==='withdraw'?-1:1),date:v.date};commit(()=>{data.transactions.push(t);audit('TRANSACCION',t.id,'INSERT',null,t);});
-  }else{
-   const rate=Number(v.rate),months=Number(v.months);if(rate<0||rate>100||!Number.isInteger(months)||months<1||months>360)throw Error('Revisa la tasa y el plazo.');
-   const l={id:next(data.loans),account:a.id,employee,amount:Math.round(amount*100)/100,date:v.date,rate,months,status:'Al día'};commit(()=>{data.loans.push(l);audit('PRESTAMO',l.id,'INSERT',null,l);});
-  }
- }else if(kind==='status'){
-  const l=data.loans.find(x=>x.id===id),old=structuredClone(l);commit(()=>{l.status=v.status;audit('PRESTAMO',id,'UPDATE',old,l);});
- }
- $('#dialog').close();render();toast('Registro guardado correctamente.');
+async function handleSubmit(f){
+ const values=Object.fromEntries(new FormData(f));
+ for(const key of Object.keys(values))values[key]=values[key].trim();
+ delete values.age;
+ await persist(f.dataset.kind,Number(f.dataset.id)||0,values);
+ $('#dialog').close();render();toast('Registro guardado en la base de datos.');
 }
 function login(){logged=true;try{sessionStorage.setItem('fonavit-demo','yes');}catch{}location.hash='home';render();}
-document.addEventListener('submit',e=>{e.preventDefault();if(e.target.id==='login-form'){const d=new FormData(e.target);if(d.get('dui')==='20000001-1'&&d.get('password')==='Demo2026!')login();else $('#login-error').textContent='Usa las credenciales de demostración indicadas abajo.';}else if(e.target.id==='record-form'){try{handleSubmit(e.target);}catch(err){$('#form-error').textContent=err.message;}}});
-document.addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(!b)return;const a=b.dataset.action,id=b.dataset.id;
+document.addEventListener('submit',async e=>{
+ e.preventDefault();if(busy||!data)return;
+ if(e.target.id==='login-form'){
+  const d=new FormData(e.target);if(d.get('dui')==='20000001-1'&&d.get('password')==='Demo2026!')login();else $('#login-error').textContent='Usa las credenciales de demostración indicadas abajo.';
+ }else if(e.target.id==='record-form'){
+  const f=e.target;setBusy(true);$('#form-error').textContent='';
+  try{await handleSubmit(f);}catch(err){const error=$('#form-error');if(error)error.textContent=err.message;else toast(err.message);}
+  finally{setBusy(false);}
+ }
+});
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-action]');if(!b||busy)return;const a=b.dataset.action,id=b.dataset.id;
  try{
- if(a==='demo')login();else if(a==='logout'){logged=false;try{sessionStorage.removeItem('fonavit-demo');}catch{}render();}else if(a==='close')$('#dialog').close();
+ if(a==='refresh'){await loadData();return;}else if(a==='demo')login();else if(a==='logout'){logged=false;try{sessionStorage.removeItem('fonavit-demo');}catch{}render();}else if(a==='close')$('#dialog').close();
  else if(a==='new-client'||a==='edit-client')personForm('client',id);
  else if(a==='new-employee'||a==='edit-employee')personForm('employee',id);
  else if(a==='client-detail')detail(id);
- else if(a==='add-account'){commit(()=>addAccount(Number(id)));detail(id);render();toast('Nueva cuenta abierta.');}
+ else if(a==='add-account'){setBusy(true);try{await persist('account',Number(id),{});detail(id);render();toast('Nueva cuenta guardada en la base.');}finally{setBusy(false);}}
  else if(a==='new-transaction')moneyForm('transaction');else if(a==='new-loan')moneyForm('loan');
  else if(a==='filter-loan'){loanFilter=id;render();}
  else if(a==='loan-status'){const l=data.loans.find(x=>x.id===Number(id));openDialog('Estado del préstamo',form('status',select('status','Estado',['Al día','Atrasado','Pagado'].map(x=>[x,x]),l.status,true),id));}
  else if(a==='audit-detail'){const x=data.audit.find(x=>x.id===Number(id));openDialog('Detalle del cambio',`<p>${escapeHtml(x.table)} · ${x.operation} · Registro ${escapeHtml(x.record)}</p><h3>Antes</h3><pre style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px">${escapeHtml(x.before?JSON.stringify(JSON.parse(x.before),null,2):'Sin registro anterior')}</pre><h3>Después</h3><pre style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px">${escapeHtml(x.after?JSON.stringify(JSON.parse(x.after),null,2):'Sin registro posterior')}</pre>`);}
- else if(a==='reset'){openDialog('Restablecer demostración',`<p>Se eliminarán los cambios de este navegador y se recuperarán los datos iniciales. La base SQL no se modifica.</p><div class="form-actions"><button class="btn ghost" data-action="close">Cancelar</button><button class="btn" data-action="confirm-reset">Restablecer</button></div>`);}
- else if(a==='confirm-reset'){commit(()=>{data=structuredClone(window.SEMILLA);});$('#dialog').close();render();toast('Demostración restablecida.');}
  else if(a==='export'){const csv=['Codigo,Cuenta,DUI,Empleado,Monto,Fecha',...data.transactions.map(x=>[x.id,x.account,x.dui,x.employee,x.amount,x.date].join(','))].join('\r\n');const url=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}));const link=document.createElement('a');link.href=url;link.download='FonaVitSV_movimientos.csv';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('Archivo de movimientos exportado.');}
  }catch(err){toast(err.message);}
 });
@@ -121,6 +117,6 @@ document.addEventListener('input',e=>{if(e.target.id==='search'){filter=e.target
  if($('#quote')){const f=$('#record-form'),v=Object.fromEntries(new FormData(f));const a=Number(v.amount),r=Number(v.rate),m=Number(v.months);$('#quote').textContent=a>0&&m>0?`Cuota mensual referencial: ${money(a*(1+r/100*m/12)/m)}. Interés simple anual; sin comisiones.`:'Completa el monto para calcular la cuota de referencia.';}
 });
 document.addEventListener('change',e=>{if(e.target.name==='account'){accountInfo();const dui=$('input[name="dui"]');if(dui)dui.value=client(account(e.target.value).client)?.dui||'';}});
-window.addEventListener('hashchange',()=>{filter='';render();window.scrollTo(0,0);});
-render();
+window.addEventListener('hashchange',()=>{filter='';render();setBusy(busy);window.scrollTo(0,0);});
+loadData();
 

@@ -1,6 +1,13 @@
 # Evidencias del proceso
 
-Capturadas el 11 de octubre de 2026. Los datos personales usados por el prototipo y la semilla SQL son ficticios.
+Las evidencias 00 a 18 se capturaron el 11 de octubre de 2026 y corresponden a la versión anterior. Los datos personales usados por el prototipo y la semilla SQL son ficticios.
+
+## Conexión del prototipo a SQL Server — 14 de octubre de 2026
+
+- `19_pruebas_conexion_sql.json`: resultados del recorrido con lectura y escritura SQL, rollback, persistencia, auditoría, validaciones en servidor y concurrencia de retiros. Las escrituras se realizan en una base temporal propia; la base del proyecto se preserva.
+- `20_inicio_conectado_sql.png`: vista del prototipo conectado durante ese recorrido. Incluye datos de prueba de la base temporal, que se elimina al finalizar.
+
+El recorrido actual está en `Pruebas/prototipo.cjs`. El funcionamiento e inicio del sitio conectado se describen en el LEEME principal y en `Servidor/LEEME.md`.
 
 ## Base de datos real
 
