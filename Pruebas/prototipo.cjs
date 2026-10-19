@@ -1,5 +1,5 @@
 // Integración en una base temporal propia. No escribe en FonaVitSV_Fase2.
-// Requiere .NET SDK 10, SQL Server, sqlcmd, Node y Playwright.
+// Requiere SQL Server, sqlcmd, Node y Playwright.
 const {chromium}=require('playwright');
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os');
 const {spawn,spawnSync}=require('node:child_process'),{randomUUID}=require('node:crypto');
@@ -27,14 +27,14 @@ async function api(kind,id=0,values={}){
  return {status:r.status,data:await r.json()};
 }
 async function state(){const r=await fetch(base+'api/data');assert.equal(r.status,200);return r.json();}
-const person={name:'Cliente de prueba integración',dui:'88888888-8',birth:'1995-04-12',street:'Calle Prueba',house:'12',city:'Santa Tecla',department:'La Libertad',family:'Soltero/a',beneficiary:'Beneficiario de prueba'};
+const person={name:'Cliente de prueba integración ÁÉÍÓÚ áéíóú Ññ Üü',dui:'88888888-8',birth:'1995-04-12',street:'Calle Prueba',house:'12',city:'Santa Tecla',department:'La Libertad',family:'Soltero/a',beneficiary:'Beneficiario de prueba'};
 const formPerson=Object.fromEntries(Object.entries(person).filter(([k])=>k!=='family'));
 const totals=db=>sql("SET NOCOUNT ON; SELECT CONCAT((SELECT COUNT(*) FROM dbo.CLIENTE),'|',(SELECT COUNT(*) FROM dbo.CUENTA),'|',(SELECT COUNT(*) FROM dbo.TRANSACCION),'|',(SELECT COUNT(*) FROM dbo.PRESTAMO),'|',(SELECT COUNT(*) FROM dbo.AUDITORIA));",db);
 (async()=>{
  const original=totals('FonaVitSV_Fase2');
  try{
   install();
-  server=spawn('dotnet',['run','--project',path.join(root,'Servidor','FonaVitSV.csproj'),'--no-build','--no-launch-profile'],{cwd:path.join(root,'Servidor'),windowsHide:true,env:{...process.env,FONAVIT_PORT:String(port),FONAVIT_CONNECTION_STRING:`Server=${instance};Database=${database};Integrated Security=true;Encrypt=true;TrustServerCertificate=true;Connect Timeout=5`}});
+  server=spawn(process.execPath,[path.join(root,'Servidor','server.cjs')],{cwd:path.join(root,'Servidor'),windowsHide:true,env:{...process.env,FONAVIT_PORT:String(port),FONAVIT_SERVER:instance,FONAVIT_DATABASE:database}});
   server.stdout.on('data',b=>serverOutput+=b);server.stderr.on('data',b=>serverOutput+=b);server.on('error',e=>errors.push(e.message));
   let healthy=false;
   for(let i=0;i<60;i++){
@@ -43,18 +43,18 @@ const totals=db=>sql("SET NOCOUNT ON; SELECT CONCAT((SELECT COUNT(*) FROM dbo.CL
    await new Promise(r=>setTimeout(r,250));
   }
   assert.ok(healthy,'El servidor no inició');
-  const initial=await state();assert.equal(initial.clients.length,20);assert.equal(initial.accounts.length,25);assert.equal(initial.audit.length,20);ok('Lectura de las seis tablas desde SQL Server');
+  const initial=await state();assert.equal(initial.clients.length,20);assert.equal(initial.accounts.length,25);assert.equal(initial.audit.length,20);ok('Lectura de las seis tablas desde SQL Server'); assert.equal(initial.clients[0].name,'Ana Lucía Martínez'); assert.ok(!JSON.stringify(initial).includes('\ufffd')); ok('UTF-8 conserva tildes en datos SQL');
   browser=await chromium.launch({headless:true,...(process.env.CHROME_PATH?{executablePath:process.env.CHROME_PATH}:{})});
   const page=await browser.newPage({viewport:{width:1440,height:1100}});page.on('pageerror',e=>errors.push(e.message));
   const action=a=>page.locator(`[data-action="${a}"]`).first().click();
   const fill=async values=>{for(const [k,v]of Object.entries(values))await page.locator(`#record-form [name="${k}"]`).fill(String(v));};
   const submit=async()=>{await page.locator('#record-form button[type=submit]').click();await page.waitForFunction(()=>!document.querySelector('#record-form button[type=submit]')?.disabled);};
-  const saved=()=>page.locator('dialog').waitFor({state:'hidden'});
+  const saved=async()=>{try{await page.locator('dialog').waitFor({state:'hidden',timeout:5000});}catch(e){throw Error((await page.locator('#form-error').innerText())+' '+serverOutput);}};
   await page.goto(base);await page.locator('#login-form').waitFor();
   await page.locator('[name=dui]').fill('20000001-1');await page.locator('[name=password]').fill('incorrecta');await page.locator('#login-form button').click();assert.match(await page.locator('#login-error').innerText(),/credenciales/);
   await page.locator('[name=password]').fill('Demo2026!');await page.locator('#login-form button').click();await page.locator('.hero').waitFor();ok('Acceso de demostración y pantalla de inicio');
   await action('new-client');await fill(formPerson);await submit();await saved();
-  let current=await state();const customer=current.clients.find(x=>x.dui===person.dui);assert.ok(customer);
+  let current=await state();const customer=current.clients.find(x=>x.dui===person.dui);assert.ok(customer); assert.equal(customer.name,person.name); assert.equal(customer.family,person.family);
   assert.equal(current.clients.length,21);assert.equal(current.accounts.length,26);assert.equal(current.audit.length,21);
   const account=current.accounts.find(x=>x.client===customer.id).id;
   assert.equal(sql(`SET NOCOUNT ON; SELECT beneficiario FROM dbo.CLIENTE WHERE codigo_cliente=${customer.id};`,database),person.beneficiary);ok('Cliente, primera cuenta y auditoría guardados desde el formulario');

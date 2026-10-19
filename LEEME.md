@@ -8,7 +8,7 @@ El prototipo **está conectado a SQL Server**: consulta y guarda en **FonaVitSV_
 
 Para entrar, pulsa **Entrar al prototipo**, o usa DUI `20000001-1` y contraseña `Demo2026!`. El acceso sigue siendo una sesión de demostración; la base original no incluye usuarios ni contraseñas. Los datos de la semilla son ficticios.
 
-Necesita **.NET SDK 10** y SQL Server. Ambos ya están instalados en este equipo. En otro equipo, la primera preparación requiere internet para descargar las dependencias. No abras `Prototipo/index.html` directamente: el sitio necesita el servidor. En Ayuda, **Actualizar datos de la base** vuelve a consultar los registros; también se actualizan al recargar la página. No hay botón que borre o restablezca la base.
+Necesita **Node.js 22 o posterior**, SQL Server y **sqlcmd**. Las herramientas ya están disponibles en este equipo. El servidor no necesita paquetes npm. No abras `Prototipo/index.html` directamente: el sitio necesita el servidor. En Ayuda, **Actualizar datos de la base** vuelve a consultar los registros; también se actualizan al recargar la página. No hay botón que borre o restablezca la base.
 
 Para presentar: entra a Clientes, registra uno, abre otra cuenta desde su perfil, deposita $250, retira $50 e intenta retirar $300. Después registra un préstamo de $1,200 al 12% anual por 12 meses: la cuota referencial es $112. Consulta Auditoría para ver el alta y la modificación del cliente. Estos pasos sí modifican la base de datos.
 
@@ -35,7 +35,7 @@ Se usó SQL Server 2025 Express 17.0.1000.7. La sintaxis está diseñada para SQ
 - **Proyecto_ASB.pdf**: copia para el formato solicitado por el enunciado.
 - **SQL/**: creación, tablas, vistas, trigger, datos, consultas y pruebas.
 - **Prototipo/**: interfaz HTML, CSS y JavaScript que consume la API local.
-- **Servidor/**: API en ASP.NET Core con consultas parametrizadas a SQL Server.
+- **Servidor/**: API en Node.js sin paquetes externos; usa sqlcmd para comunicarse con SQL Server.
 - **Iniciar.cmd / Iniciar.ps1**: iniciadores del prototipo conectado.
 - **Diagramas/**: modelo relacional y clases actualizados, PNG y SVG editable; relaciones también en Mermaid.
 - **Evidencias/**: capturas reales del sitio y de reportes basados en resultados reales de SQL Server; archivos TXT y JSON para comprobar los resultados.
@@ -60,6 +60,6 @@ La copia actualizada del código conectado se empaqueta como **ProyCatedra_ASB_C
 
 ## Repetir las pruebas del sitio de forma opcional
 
-El sitio no necesita Node ni Playwright para usarse. Para ejecutar `Pruebas/prototipo.cjs`, prepara primero el servidor con `dotnet build Servidor/FonaVitSV.csproj` y después ejecuta `node Pruebas/prototipo.cjs` con Node y Playwright disponibles. `CHROME_PATH` permite elegir un navegador instalado.
+El sitio necesita Node y sqlcmd. Playwright solo se usa para las pruebas opcionales y se mantiene fuera del proyecto. Ejecuta `node Pruebas/prototipo.cjs` con Playwright disponible externamente. `CHROME_PATH` permite elegir un navegador instalado.
 
 El recorrido crea una base temporal con nombre `FonaVitSV_Test_...`, carga allí los scripts 01 a 03, inicia su propio servidor en el puerto 8766 y prueba los formularios, persistencia, auditoría, rollback y retiros simultáneos. Al finalizar elimina únicamente esa base temporal. **No escribe en FonaVitSV_Fase2.** Se puede configurar `FONAVIT_TEST_SERVER` y `FONAVIT_TEST_PORT`. La cuenta Windows necesita permisos para crear y eliminar la base de pruebas. El resultado se guarda en `Evidencias/19_pruebas_conexion_sql.json`.

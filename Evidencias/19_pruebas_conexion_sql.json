@@ -1,10 +1,14 @@
 {
-  "fecha": "2026-10-14T17:07:47.332Z",
-  "base_prueba": "FonaVitSV_Test_e2f4aa6208114263832d68d7d17d173d",
+  "fecha": "2026-10-19T03:27:26.760Z",
+  "base_prueba": "FonaVitSV_Test_6ba47285b1654c5cab3c208dac91d51f",
   "base_original": "FonaVitSV_Fase2",
   "resultados": [
     {
       "prueba": "Lectura de las seis tablas desde SQL Server",
+      "resultado": "PASS"
+    },
+    {
+      "prueba": "UTF-8 conserva tildes en datos SQL",
       "resultado": "PASS"
     },
     {
