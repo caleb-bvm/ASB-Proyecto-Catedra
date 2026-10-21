@@ -25,5 +25,3 @@ Node valida los campos. Los datos se codifican como hexadecimal UTF-16 y SQL Ser
 Las operaciones conservan la transacción serializable, el bloqueo de aplicación, la primera cuenta automática, el rollback del trigger, la comprobación de saldo y los controles de jefatura. El estado se devuelve después de confirmar la transacción.
 
 El servidor escucha solo en 127.0.0.1, rechaza orígenes externos y limita el JSON a 32 KB. La sesión sigue siendo demostrativa. Los préstamos no abonan dinero automáticamente.
-
-Pruebas opcionales: `node Pruebas/prototipo.cjs`, con Playwright disponible externamente. Se crea y elimina una base temporal propia sin escribir en FonaVitSV_Fase2. Los resultados quedan en Evidencias/19_pruebas_conexion_sql.json. Los documentos y capturas anteriores se conservan como antecedentes históricos.
